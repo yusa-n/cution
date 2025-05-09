@@ -1,8 +1,7 @@
 use anyhow::Result;
 use std::env;
 use time::OffsetDateTime;
-use tracing::{info, warn, Level};
-use tracing_subscriber::FmtSubscriber;
+use tracing::{info, warn};
 
 const GITHUB_TRENDING_URL_FORMAT: &str = "https://github.com/trending/{language}?since=daily";
 const MARKDOWN_FORMAT: &str =
@@ -16,14 +15,14 @@ struct Repository {
     stars: String, // Keep as String for direct insertion into markdown
 }
 
-struct GithubTrendingFetcher {
+pub struct GithubTrendingFetcher {
     http_client: reqwest::Client,
     supabase_client: SupabaseStorageClient,
     languages: Vec<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
-enum FetchError {
+pub enum FetchError {
     #[error("HTTP request failed: {0}")]
     HttpRequest(#[from] reqwest::Error),
     #[error("HTML parsing failed: {0}")]
@@ -35,7 +34,7 @@ enum FetchError {
 }
 
 impl GithubTrendingFetcher {
-    async fn new(
+    pub async fn new(
         supabase_url: &str,
         supabase_key: &str,
         supabase_bucket: &str,
@@ -159,29 +158,51 @@ impl GithubTrendingFetcher {
             )
     }
 
-    async fn run(&self) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
         let mut all_markdowns: Vec<String> = Vec::new();
         let mut processed_languages = 0;
 
+        // 各言語のクローリングを並列化
+        let mut tasks = Vec::new();
         for language in &self.languages {
-            match self.fetch_trending_for_language(language).await {
-                Ok(repos) => {
-                    if !repos.is_empty() {
-                        for repo in repos {
-                            all_markdowns.push(self.stylize_repository_info(&repo));
+            let language_clone = language.clone();
+            tasks.push(tokio::spawn({
+                let self_clone = self.clone();
+                async move {
+                    match self_clone
+                        .fetch_trending_for_language(&language_clone)
+                        .await
+                    {
+                        Ok(repos) => {
+                            let mut markdown_results = Vec::new();
+                            for repo in repos {
+                                markdown_results.push(self_clone.stylize_repository_info(&repo));
+                            }
+                            if !markdown_results.is_empty() {
+                                Some((language_clone, markdown_results))
+                            } else {
+                                None
+                            }
                         }
-                        processed_languages += 1;
+                        Err(e) => {
+                            warn!(
+                                "Failed to fetch trending for language '{}': {}",
+                                language_clone, e
+                            );
+                            None
+                        }
                     }
                 }
-                Err(e) => {
-                    warn!(
-                        "Failed to fetch trending for language '{}': {}",
-                        language, e
-                    );
-                }
+            }));
+        }
+
+        // 全てのタスクの結果を集約
+        for task in tasks {
+            if let Ok(Some((language, markdowns))) = task.await {
+                all_markdowns.extend(markdowns);
+                processed_languages += 1;
+                info!("Processed language: {}", language);
             }
-            // Small delay to avoid hitting rate limits, if any
-            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         }
 
         if processed_languages > 0 && !all_markdowns.is_empty() {
@@ -209,7 +230,24 @@ impl GithubTrendingFetcher {
     }
 }
 
+// Clone トレイトを実装して、各言語処理の並列タスク内でクローンして使用できるようにする
+impl Clone for GithubTrendingFetcher {
+    fn clone(&self) -> Self {
+        let http_client = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+            .build()
+            .expect("Failed to build HTTP client clone");
+
+        Self {
+            http_client,
+            supabase_client: self.supabase_client.clone(),
+            languages: self.languages.clone(),
+        }
+    }
+}
+
 // Simplified Supabase client (similar to hacker_news crate)
+#[derive(Clone)]
 struct SupabaseStorageClient {
     base_url: String,
     api_key: String,
@@ -246,6 +284,7 @@ impl SupabaseStorageClient {
             .header("apikey", &self.api_key)
             .header("Authorization", &format!("Bearer {}", self.api_key))
             .header("Content-Type", content_type)
+            .header("x-upsert", "true")
             .body(content)
             .send()
             .await;
@@ -262,8 +301,30 @@ impl SupabaseStorageClient {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    // lib.rs で定義された関数を呼び出す
-    github::run_github_crawler().await
+// メイン関数をライブラリの関数として公開
+pub async fn run_github_crawler() -> Result<()> {
+    let _ = dotenv::dotenv();
+
+    info!("GitHub Trending Fetcher starting up");
+
+    let supabase_url = env::var("SUPABASE_URL").expect("SUPABASE_URL must be set");
+    let supabase_key =
+        env::var("SUPABASE_SERVICE_ROLE_KEY").expect("SUPABASE_SERVICE_ROLE_KEY must be set");
+    let supabase_bucket =
+        env::var("SUPABASE_BUCKET_NAME").expect("SUPABASE_BUCKET_NAME must be set");
+
+    let fetcher = GithubTrendingFetcher::new(
+        &format!("{}/storage/v1", supabase_url.trim_end_matches('/')),
+        &supabase_key,
+        &supabase_bucket,
+    )
+    .await?;
+
+    if let Err(e) = fetcher.run().await {
+        eprintln!("Error running fetcher: {}", e);
+        return Err(e.into());
+    }
+
+    info!("GitHub Trending Fetcher finished successfully.");
+    Ok(())
 }

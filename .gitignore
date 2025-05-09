@@ -9,6 +9,7 @@
 *.pdb
 Cargo.lock
 /target
+/rustc-*
 
 # IDE and editor related
 .idea/

@@ -3,6 +3,7 @@ use anyhow::Result;
 use reqwest::Client;
 use scraper::Html;
 
+#[derive(Clone)]
 pub struct HackerNewsAPI {
     client: Client,
     base_url: String,

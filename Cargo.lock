@@ -884,6 +884,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "orchestrator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dotenv",
+ "github",
+ "hacker_news",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
