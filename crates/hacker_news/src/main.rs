@@ -1,12 +1,12 @@
 mod api;
-mod storage;
 mod models;
+mod storage;
 
 use anyhow::Result;
 use api::HackerNewsAPI;
-use storage::SupabaseStorageClient;
 use models::StoryData;
 use std::env;
+use storage::SupabaseStorageClient;
 use time::OffsetDateTime;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
@@ -24,8 +24,10 @@ async fn main() -> Result<()> {
 
     let gemini_api_key = env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY must be set");
     let supabase_url = env::var("SUPABASE_URL").expect("SUPABASE_URL must be set");
-    let supabase_key = env::var("SUPABASE_SERVICE_ROLE_KEY").expect("SUPABASE_SERVICE_ROLE_KEY must be set");
-    let supabase_bucket = env::var("SUPABASE_BUCKET_NAME").expect("SUPABASE_BUCKET_NAME must be set");
+    let supabase_key =
+        env::var("SUPABASE_SERVICE_ROLE_KEY").expect("SUPABASE_SERVICE_ROLE_KEY must be set");
+    let supabase_bucket =
+        env::var("SUPABASE_BUCKET_NAME").expect("SUPABASE_BUCKET_NAME must be set");
 
     let hn_api = HackerNewsAPI::new();
     let storage_client = SupabaseStorageClient::new(
@@ -50,7 +52,11 @@ async fn main() -> Result<()> {
             Some(html) if (100..10_000).contains(&html.len()) => {
                 info!("Summarizing story: {}", item.title);
                 let clean_text = hn_api.clean_html(html);
-                Some(hn_api.summarize(&gemini_api_key, &item.title, &clean_text).await?)
+                Some(
+                    hn_api
+                        .summarize(&gemini_api_key, &item.title, &clean_text)
+                        .await?,
+                )
             }
             _ => None,
         };
@@ -65,15 +71,18 @@ async fn main() -> Result<()> {
     if processed_count > 0 {
         let today_str = OffsetDateTime::now_utc().date().to_string(); // YYYY-MM-DD
         let file_content = all_stories_markdown.join("\n\n---\n\n");
-        let file_path = format!("hacker_news_summaries/{}.md", today_str);
+        let file_path = format!("{}/hacker-news.md", today_str);
 
         storage_client
             .upload_file(&file_path, file_content, "text/markdown")
             .await?;
-        info!("Successfully processed and uploaded {} stories to {}", processed_count, file_path);
+        info!(
+            "Successfully processed and uploaded {} stories to {}",
+            processed_count, file_path
+        );
     } else {
         info!("No stories processed today.");
     }
-    
+
     Ok(())
-} 
+}
