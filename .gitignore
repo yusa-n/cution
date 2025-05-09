@@ -1,0 +1,8 @@
+# env
+.env
+
+# rust
+/target
+
+# misc
+/ref

@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "crates/hacker_news",
+    # "crates/github",
+    # "crates/arxiv",
+    # "crates/scheduler", # optional
+]
+
+resolver = "2"
+
+# [profile.release]
+# lto = true
+# codegen-units = 1
