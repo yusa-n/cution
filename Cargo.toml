@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "crates/hacker_news",
-    # "crates/github",
+    "crates/github",
     # "crates/arxiv",
     # "crates/scheduler", # optional
 ]
