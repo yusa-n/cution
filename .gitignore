@@ -1,8 +1,36 @@
 # env
 .env
 
-# rust
-/target
-
 # misc
 /ref
+
+# Rust related
+**/*.rs.bk
+*.pdb
+Cargo.lock
+/target
+
+# IDE and editor related
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build related
+debug/
+release/
+
+# Dependencies
+.cargo/
+
+# Log files
+*.log
+
+# macOS related
+.DS_Store
+
+# Windows related
+Thumbs.db
+
+# nod
+node_modules/

@@ -18,7 +18,7 @@
 2. Build and run
    ```
    cargo build --release
-   ./target/release/cution
+   ./target/release/hacker_news
    ```
 
 ## Deploy to Render
@@ -27,7 +27,7 @@
 2. Create a new Cron Job in Render
    - Runtime: Rust
    - Build command: `cargo build --release`
-   - Start command: `./target/release/cution`
+   - Start command: `./target/release/hacker_news`
    - Schedule: Set the time for daily execution (e.g., `0 8 * * *`)
 3. Configure environment variables in the Render dashboard
 
@@ -37,3 +37,8 @@
 2. Create a new bucket in the "Storage" section of the Supabase dashboard
    - Make the bucket Public or set up RLS policies to allow access from the `anon` key (or `authenticated` role) as needed
    - Ensure proper write permissions for the upload directory (e.g., `cution`)
+   - (Optional) Create a new bucket with pnpm
+   ```
+   pnpm i
+   pnpm setup
+   ```

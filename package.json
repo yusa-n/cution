@@ -1,0 +1,20 @@
+{
+  "name": "cution",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "setup": "node --loader ts-node/esm scripts/setup_bucket.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "dotenv": "^16.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.46",
+    "ts-node": "^10.9.2"
+  }
+}
