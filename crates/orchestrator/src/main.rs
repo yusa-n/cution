@@ -4,9 +4,10 @@ use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 use dotenv;
 
-// Using github and hacker_news crates
+// Use existing crawlers
 use github;
 use hacker_news;
+use custom_site;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -19,7 +20,7 @@ async fn main() -> Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    // JoinSet for running both crawlers in parallel
+    // JoinSet for running multiple crawlers in parallel
     let mut crawler_tasks = JoinSet::new();
 
     // Register GitHub crawler as an async task
@@ -31,6 +32,20 @@ async fn main() -> Result<()> {
             }
             Err(e) => {
                 eprintln!("GitHub failed: {}", e);
+                Err(e)
+            }
+        }
+    });
+
+    // Register Custom Site crawler as an async task
+    crawler_tasks.spawn(async {
+        match custom_site::run_custom_site_crawler().await {
+            Ok(_) => {
+                info!("Custom Site completed successfully");
+                Ok::<_, anyhow::Error>(())
+            }
+            Err(e) => {
+                eprintln!("Custom Site failed: {}", e);
                 Err(e)
             }
         }

@@ -3,6 +3,7 @@ members = [
     "crates/hacker_news",
     "crates/github",
     "crates/orchestrator",
+    "crates/custom_site",
     # "crates/arxiv",
     # "crates/scheduler", # optional
 ]
