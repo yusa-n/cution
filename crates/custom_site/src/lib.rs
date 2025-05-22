@@ -3,7 +3,7 @@ use reqwest::Client;
 use scraper::Html;
 use std::env;
 use time::OffsetDateTime;
-use tracing::info;
+use tracing::{info, warn};
 
 #[derive(Clone)]
 struct SiteFetcher {
