@@ -4,6 +4,7 @@ use serde::Deserialize;
 use std::env;
 use time::OffsetDateTime;
 use tracing::{info, warn};
+use common::SupabaseStorageClient;
 
 #[derive(Deserialize)]
 struct ChatCompletionResponse {
@@ -89,52 +90,6 @@ impl XaiClient {
     }
 }
 
-#[derive(Clone)]
-struct SupabaseStorageClient {
-    base_url: String,
-    api_key: String,
-    bucket_name: String,
-    http_client: Client,
-}
-
-impl SupabaseStorageClient {
-    fn new(base_url: &str, api_key: &str, bucket_name: &str) -> Self {
-        SupabaseStorageClient {
-            base_url: base_url.trim_end_matches('/').to_string(),
-            api_key: api_key.to_string(),
-            bucket_name: bucket_name.to_string(),
-            http_client: Client::new(),
-        }
-    }
-
-    async fn upload_file(&self, path: &str, content: String, content_type: &str) -> Result<()> {
-        let url = format!(
-            "{}/object/{}/{}",
-            self.base_url,
-            self.bucket_name,
-            path.trim_start_matches('/')
-        );
-
-        let res = self
-            .http_client
-            .post(&url)
-            .header("apikey", &self.api_key)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("Content-Type", content_type)
-            .header("x-upsert", "true")
-            .body(content)
-            .send()
-            .await?;
-
-        if res.status().is_success() {
-            Ok(())
-        } else {
-            let status = res.status();
-            let text = res.text().await.unwrap_or_default();
-            anyhow::bail!("Upload failed: {} - {}", status, text);
-        }
-    }
-}
 
 pub async fn run_xai_search() -> Result<()> {
     let _ = dotenv::dotenv();
