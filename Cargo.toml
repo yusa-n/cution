@@ -4,8 +4,10 @@ members = [
     "crates/hacker_news",
     "crates/github",
     "crates/orchestrator",
+    "crates/custom_site",
     "crates/arxiv",
-    "crates/xai_search"
+    "crates/xai_search",
+    # "crates/scheduler", # optional
 ]
 
 resolver = "2"
