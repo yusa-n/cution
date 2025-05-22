@@ -55,4 +55,4 @@ impl SupabaseStorageClient {
             )
         }
     }
-} 
+}
