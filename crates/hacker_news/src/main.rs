@@ -1,12 +1,12 @@
 mod api;
 mod models;
-mod storage;
+
 
 use anyhow::Result;
 use api::HackerNewsAPI;
 use models::StoryData;
 use std::env;
-use storage::SupabaseStorageClient;
+use common::SupabaseStorageClient;
 use time::OffsetDateTime;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;

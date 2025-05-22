@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::env;
 use time::OffsetDateTime;
 use tracing::{info, warn};
+use common::SupabaseStorageClient;
 
 const GITHUB_TRENDING_URL_FORMAT: &str = "https://github.com/trending/{language}?since=daily";
 const MARKDOWN_FORMAT: &str =
@@ -215,10 +216,11 @@ impl GithubTrendingFetcher {
                 all_markdowns.len(),
                 file_path
             );
-            self.supabase_client
+            self
+                .supabase_client
                 .upload_file(&file_path, file_content, "text/markdown")
                 .await
-                .map_err(FetchError::SupabaseUpload)?;
+                .map_err(|e| FetchError::SupabaseUpload(e.to_string()))?;
             info!(
                 "Successfully uploaded trending repositories to {}",
                 file_path
@@ -246,60 +248,6 @@ impl Clone for GithubTrendingFetcher {
     }
 }
 
-// Simplified Supabase client (similar to hacker_news crate)
-#[derive(Clone)]
-struct SupabaseStorageClient {
-    base_url: String,
-    api_key: String,
-    bucket_name: String,
-    http_client: reqwest::Client,
-}
-
-impl SupabaseStorageClient {
-    fn new(base_url: &str, api_key: &str, bucket_name: &str) -> Self {
-        SupabaseStorageClient {
-            base_url: base_url.trim_end_matches('/').to_string(),
-            api_key: api_key.to_string(),
-            bucket_name: bucket_name.to_string(),
-            http_client: reqwest::Client::new(),
-        }
-    }
-
-    async fn upload_file(
-        &self,
-        path: &str,
-        content: String,
-        content_type: &str,
-    ) -> Result<(), String> {
-        let url = format!(
-            "{}/object/{}/{}",
-            self.base_url,
-            self.bucket_name,
-            path.trim_start_matches('/')
-        );
-
-        let response = self
-            .http_client
-            .post(&url)
-            .header("apikey", &self.api_key)
-            .header("Authorization", &format!("Bearer {}", self.api_key))
-            .header("Content-Type", content_type)
-            .header("x-upsert", "true")
-            .body(content)
-            .send()
-            .await;
-
-        match response {
-            Ok(res) if res.status().is_success() => Ok(()),
-            Ok(res) => Err(format!(
-                "Failed to upload file: {} - {}",
-                res.status(),
-                res.text().await.unwrap_or_else(|_| "<no body>".to_string())
-            )),
-            Err(e) => Err(format!("HTTP request failed during upload: {}", e)),
-        }
-    }
-}
 
 // メイン関数をライブラリの関数として公開
 pub async fn run_github_crawler() -> Result<()> {

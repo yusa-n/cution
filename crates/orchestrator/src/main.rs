@@ -4,9 +4,10 @@ use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 use dotenv;
 
-// Using github and hacker_news crates
+// Using github, hacker_news and xai_search crates
 use github;
 use hacker_news;
+use xai_search;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -45,6 +46,20 @@ async fn main() -> Result<()> {
             }
             Err(e) => {
                 eprintln!("Hacker News failed: {}", e);
+                Err(e)
+            }
+        }
+    });
+
+    // Register xAI search crawler as an async task
+    crawler_tasks.spawn(async {
+        match xai_search::run_xai_search().await {
+            Ok(_) => {
+                info!("xAI search completed successfully");
+                Ok::<_, anyhow::Error>(())
+            }
+            Err(e) => {
+                eprintln!("xAI search failed: {}", e);
                 Err(e)
             }
         }

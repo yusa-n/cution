@@ -1,7 +1,8 @@
 use anyhow::Result;
-use reqwest::{Client, Body};
+use reqwest::Client;
 use tracing::info;
 
+#[derive(Clone)]
 pub struct SupabaseStorageClient {
     client: Client,
     base_url: String,
@@ -19,40 +20,33 @@ impl SupabaseStorageClient {
         }
     }
 
-    pub async fn upload_file(
-        &self,
-        file_path: &str, // e.g., "hacker_news_summaries/2024-01-15.md"
-        content: String,
-        content_type: &str, // e.g., "text/markdown"
-    ) -> Result<()> {
+    pub async fn upload_file(&self, path: &str, content: String, content_type: &str) -> Result<()> {
         let url = format!(
             "{}/object/{}/{}",
             self.base_url,
             self.bucket_name,
-            file_path.trim_start_matches('/')
+            path.trim_start_matches('/')
         );
 
         info!("Uploading to Supabase Storage: {} ({} bytes)", url, content.len());
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
+            .header("apikey", &self.api_key)
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", content_type)
-            .header("x-upsert", "true") // Overwrite if exists
-            .body(Body::from(content))
+            .header("x-upsert", "true")
+            .body(content)
             .send()
             .await?;
 
         if response.status().is_success() {
-            info!("Successfully uploaded {} to Supabase Storage.", file_path);
+            info!("Successfully uploaded {} to Supabase Storage.", path);
             Ok(())
         } else {
-            let error_text = response.text().await?;
-            anyhow::bail!(
-                "Failed to upload to Supabase Storage ({}): {}",
-                url,
-                error_text
-            )
+            let error_text = response.text().await.unwrap_or_default();
+            anyhow::bail!("Failed to upload to Supabase Storage ({}): {}", url, error_text);
         }
     }
-} 
+}

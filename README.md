@@ -14,6 +14,7 @@
    - `SUPABASE_ANON_KEY`: Supabase Anonymous Key (or `SUPABASE_SERVICE_ROLE_KEY`)
    - `SUPABASE_BUCKET_NAME`: Supabase Storage bucket name (e.g., `cution`)
    - `GEMINI_API_KEY`: Google Gemini API Key
+   - `XAI_API_KEY`: xAI API Key used for live search
 
 2. Build and run
    ```
