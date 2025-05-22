@@ -1,5 +1,5 @@
 [package]
-name = "hacker_news"
+name = "custom_site"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,10 +8,7 @@ anyhow = "1.0"
 dotenv = "0.15"
 reqwest = { version = "0.12", features = ["json"] }
 scraper = "0.23"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 time = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1"
-tracing-subscriber = "0.3"
-common = { path = "../common" }
+

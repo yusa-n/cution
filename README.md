@@ -1,5 +1,10 @@
 # Cution
 
+## Description
+
+Experimental Curator project without hand coding, which is made by only Codex or Background Agent.
+Trust Vibe.
+
 ## Features
 
 - Fetch top stories from Hacker News API
@@ -8,6 +13,7 @@
 - Store Markdown files in Supabase Storage
 - Fetch GitHub trending repositories
 - Fetch xAI news
+- Fetch content from a custom site defined by `CUSTOM_SITE_URL`
 
 ## Setup
 
@@ -21,6 +27,8 @@
 2. Build and run
    ```
    cargo run -p orchestrator --release
+   - `CUSTOM_SITE_URL`: URL of the website you want to fetch
+   - `XAI_API_KEY`: xAI API Key used for live search
    ```
 
 ## Deploy to Render

@@ -12,3 +12,5 @@ dotenv = "0.15"
 
 github = { path = "../github" }
 hacker_news = { path = "../hacker_news" }
+custom_site = { path = "../custom_site" }
+xai_search = { path = "../xai_search" }

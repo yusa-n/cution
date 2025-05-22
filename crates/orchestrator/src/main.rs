@@ -1,12 +1,14 @@
 use anyhow::Result;
+use dotenv;
 use tokio::task::JoinSet;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
-use dotenv;
 
-// Using github and hacker_news crates
+// Using github, hacker_news, custom_site and xai_search crates
+use custom_site;
 use github;
 use hacker_news;
+use xai_search;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -19,7 +21,7 @@ async fn main() -> Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    // JoinSet for running both crawlers in parallel
+    // JoinSet for running multiple crawlers in parallel
     let mut crawler_tasks = JoinSet::new();
 
     // Register GitHub crawler as an async task
@@ -50,6 +52,34 @@ async fn main() -> Result<()> {
         }
     });
 
+    // Register xAI search crawler as an async task
+    crawler_tasks.spawn(async {
+        match xai_search::run_xai_search().await {
+            Ok(_) => {
+                info!("xAI search completed successfully");
+                Ok::<_, anyhow::Error>(())
+            }
+            Err(e) => {
+                eprintln!("xAI search failed: {}", e);
+                Err(e)
+            }
+        }
+    });
+
+    // Register Custom Site crawler as an async task
+    crawler_tasks.spawn(async {
+        match custom_site::run_custom_site_crawler().await {
+            Ok(_) => {
+                info!("Custom Site completed successfully");
+                Ok::<_, anyhow::Error>(())
+            }
+            Err(e) => {
+                eprintln!("Custom Site failed: {}", e);
+                Err(e)
+            }
+        }
+    });
+
     // Wait for all crawler tasks to complete
     let mut success_count = 0;
     let mut error_count = 0;
@@ -71,4 +101,4 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
-} 
+}

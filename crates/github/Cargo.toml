@@ -23,6 +23,7 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["fmt"] }
 dotenv = "0.15.0"
 thiserror = "2.0.1"
+common = { path = "../common" }
 
 [profile.release]
 strip = true
