@@ -16,6 +16,7 @@
    - `SUPABASE_BUCKET_NAME`: Supabase Storage bucket name (e.g., `cution`)
    - `GEMINI_API_KEY`: Google Gemini API Key
    - `CUSTOM_SITE_URL`: URL of the website you want to fetch
+   - `XAI_API_KEY`: xAI API Key used for live search
 
 2. Build and run
    ```
