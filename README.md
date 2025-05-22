@@ -1,5 +1,10 @@
 # Cution
 
+## Description
+
+Experimental Curator project without hand coding, which is made by only Codex or Background Agent.
+Trust Vibe.
+
 ## Features
 
 - Fetch top stories from Hacker News API
