@@ -24,11 +24,18 @@ Trust Vibe.
    - `GEMINI_API_KEY`: Google Gemini API Key
    - `LANGUAGES`: Comma-separated list of languages for GitHub Trending (e.g., `rust,python,typescript`)
 
-2. Build and run
-   ```
-   cargo run -p orchestrator --release
+2. (Optional) set additional environment variables
    - `CUSTOM_SITE_URL`: URL of the website you want to fetch
    - `XAI_API_KEY`: xAI API Key used for live search
+
+3. Build
+   ```bash
+   cargo build --release
+   ```
+
+4. Run
+   ```bash
+   ./target/release/orchestrator
    ```
 
 ## Deploy to Render
