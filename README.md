@@ -11,22 +11,24 @@ Trust Vibe.
 - Extract article text content
 - Generate summaries using LLM
 - Store Markdown files in Supabase Storage
+- Fetch GitHub trending repositories
+- Fetch xAI news
 - Fetch content from a custom site defined by `CUSTOM_SITE_URL`
 
 ## Setup
 
 1. Set required environment variables
    - `SUPABASE_URL`: Your Supabase project URL (e.g., `https://your-project-id.supabase.co`)
-   - `SUPABASE_ANON_KEY`: Supabase Anonymous Key (or `SUPABASE_SERVICE_ROLE_KEY`)
+   - `SUPABASE_SERVICE_ROLE_KEY`: Supabase Service Role Key
    - `SUPABASE_BUCKET_NAME`: Supabase Storage bucket name (e.g., `cution`)
    - `GEMINI_API_KEY`: Google Gemini API Key
-   - `CUSTOM_SITE_URL`: URL of the website you want to fetch
-   - `XAI_API_KEY`: xAI API Key used for live search
+   - `LANGUAGES`: Comma-separated list of languages for GitHub Trending (e.g., `rust,python,typescript`)
 
 2. Build and run
    ```
-   cargo build --release
-   ./target/release/orchestrator
+   cargo run -p orchestrator --release
+   - `CUSTOM_SITE_URL`: URL of the website you want to fetch
+   - `XAI_API_KEY`: xAI API Key used for live search
    ```
 
 ## Deploy to Render
