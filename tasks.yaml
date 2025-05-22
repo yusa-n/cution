@@ -1,0 +1,97 @@
+tasks:
+  - id: 1
+    name: "Create new crate: mcp_server"
+    description: >
+      Add `crates/mcp_server` to the workspace.
+      Scaffold Cargo.toml and src/{lib.rs,server.rs,transport.rs,tools.rs,models.rs}.
+      lib.rs should expose `serve_stdio()` and `register_tool()` APIs.
+    status: todo
+    priority: high
+
+  - id: 2
+    name: "Implement JSON-RPC 2.0 core (stdio transport)"
+    description: >
+      Use `jsonrpc-v2`, `tokio-serde`, `tokio-util` to handle
+      initialize/shutdown, tools.list, tools.call requests over stdio.
+    status: todo
+    priority: high
+
+  - id: 3
+    name: "Define Tool trait & registry"
+    description: >
+      In mcp_server::tools define:
+        pub trait Tool { async fn name(&self)->&str; async fn call(&self, args: Value)->Result<Value>; }
+      Maintain `HashMap<String, Box<dyn Tool>>` for dynamic dispatch.
+    status: todo
+    priority: high
+
+  - id: 4
+    name: "Refactor Github crawler into Tool"
+    description: >
+      Extract `GithubTrendingFetcher::execute(opts)->Result<GithubResult>`.
+      Implement `impl Tool for GithubTool` that wraps it and returns markdown.
+    status: todo
+    priority: high
+
+  - id: 5
+    name: "Refactor Hacker News crawler into Tool"
+    description: >
+      Similar to Github; expose `HNCrawler::execute(limit: u32)->Result<HNResult>`.
+      Convert current env var consumption into explicit args.
+    status: todo
+    priority: high
+
+  - id: 6
+    name: "Refactor Custom Site crawler into Tool"
+    description: >
+      Generalise `run_custom_site_crawler()` to `CustomSiteCrawler::execute(url:String)->Result<String>`.
+    status: todo
+    priority: medium
+
+  - id: 7
+    name: "Refactor xAI Search crawler into Tool"
+    description: >
+      Expose `XaiClient::execute(prompt:String)->Result<String>` and wrap as Tool.
+    status: todo
+    priority: medium
+
+  - id: 8
+    name: "Add common CrawlerExecute trait"
+    description: >
+      Place in crates/common/src/crawler_trait.rs:
+        pub trait CrawlerExecute<Args,Out>{ async fn execute(&self,args:Args)->Result<Out>; }
+      All crawlers should implement it.
+    status: todo
+    priority: medium
+
+  - id: 9
+    name: "Orchestrator_MCP binary"
+    description: >
+      Add `crates/orchestrator/src/bin/orchestrator_mcp.rs`
+      calling `mcp_server::serve_stdio()`; keep existing orchestrator CLI unchanged.
+    status: todo
+    priority: medium
+
+  - id: 10
+    name: "Workspace & Cargo updates"
+    description: >
+      Add mcp_server to `[members]`; set crate feature `mcp` in each crawler to remove
+      direct Supabase upload when compiled for MCP mode.
+    status: todo
+    priority: medium
+
+  - id: 11
+    name: "Progress / streaming notifications"
+    description: >
+      Implement optional `client.notify("crawl/progress", {...})`
+      using JSON-RPC notifications or SSE when HTTP transport is added.
+    status: todo
+    priority: low
+
+  - id: 12
+    name: "Error-to-JSON-RPC mapping layer"
+    description: >
+      Convert `anyhow::Error` into JSON-RPC error object
+      with codes: -32001 (crawler_error), -32603 (internal).
+    status: todo
+    priority: low
