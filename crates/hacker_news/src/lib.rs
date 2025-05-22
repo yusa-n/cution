@@ -1,12 +1,10 @@
 pub mod api;
 pub mod models;
-pub mod storage;
-
 use anyhow::Result;
 use api::HackerNewsAPI;
 use models::StoryData;
 use std::env;
-use storage::SupabaseStorageClient;
+use common::SupabaseStorageClient;
 use time::OffsetDateTime;
 use tokio::task::JoinSet;
 use tracing::info;
