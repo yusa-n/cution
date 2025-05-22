@@ -77,7 +77,13 @@ pub async fn run_custom_site_crawler() -> Result<()> {
 
     info!("Custom site crawler starting up");
 
-    let url = env::var("CUSTOM_SITE_URL").expect("CUSTOM_SITE_URL must be set");
+    let url = match env::var("CUSTOM_SITE_URL") {
+        Ok(v) => v,
+        Err(_) => {
+            warn!("CUSTOM_SITE_URL not set; skipping custom site crawler");
+            return Ok(());
+        }
+    };
     let supabase_url = env::var("SUPABASE_URL").expect("SUPABASE_URL must be set");
     let supabase_key = env::var("SUPABASE_SERVICE_ROLE_KEY").expect("SUPABASE_SERVICE_ROLE_KEY must be set");
     let supabase_bucket = env::var("SUPABASE_BUCKET_NAME").expect("SUPABASE_BUCKET_NAME must be set");
