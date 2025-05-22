@@ -1,5 +1,6 @@
 use anyhow::Result;
 use dotenv;
+use std::env;
 use tokio::task::JoinSet;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
@@ -52,33 +53,41 @@ async fn main() -> Result<()> {
         }
     });
 
-    // Register xAI search crawler as an async task
-    crawler_tasks.spawn(async {
-        match xai_search::run_xai_search().await {
-            Ok(_) => {
-                info!("xAI search completed successfully");
-                Ok::<_, anyhow::Error>(())
+    // Register xAI search crawler as an async task only if XAI_API_KEY is set
+    if env::var("XAI_API_KEY").is_ok() {
+        crawler_tasks.spawn(async {
+            match xai_search::run_xai_search().await {
+                Ok(_) => {
+                    info!("xAI search completed successfully");
+                    Ok::<_, anyhow::Error>(())
+                }
+                Err(e) => {
+                    eprintln!("xAI search failed: {}", e);
+                    Err(e)
+                }
             }
-            Err(e) => {
-                eprintln!("xAI search failed: {}", e);
-                Err(e)
-            }
-        }
-    });
+        });
+    } else {
+        info!("Skipping xAI search crawler: XAI_API_KEY not set");
+    }
 
-    // Register Custom Site crawler as an async task
-    crawler_tasks.spawn(async {
-        match custom_site::run_custom_site_crawler().await {
-            Ok(_) => {
-                info!("Custom Site completed successfully");
-                Ok::<_, anyhow::Error>(())
+    // Register Custom Site crawler as an async task only if CUSTOM_SITE_URL is set
+    if env::var("CUSTOM_SITE_URL").is_ok() {
+        crawler_tasks.spawn(async {
+            match custom_site::run_custom_site_crawler().await {
+                Ok(_) => {
+                    info!("Custom Site completed successfully");
+                    Ok::<_, anyhow::Error>(())
+                }
+                Err(e) => {
+                    eprintln!("Custom Site failed: {}", e);
+                    Err(e)
+                }
             }
-            Err(e) => {
-                eprintln!("Custom Site failed: {}", e);
-                Err(e)
-            }
-        }
-    });
+        });
+    } else {
+        info!("Skipping Custom Site crawler: CUSTOM_SITE_URL not set");
+    }
 
     // Wait for all crawler tasks to complete
     let mut success_count = 0;
