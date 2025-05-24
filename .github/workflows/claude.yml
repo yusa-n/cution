@@ -34,12 +34,12 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           # Limited tools for safer review operations
-          allowed_tools: [
-            "Bash(git diff --name-only HEAD~1)",  # List changed files
-            "Bash(git diff HEAD~1)",              # See actual changes
-            "View",                               # Read file contents
-            "GlobTool",                          # Find related files
-            "GrepTool"                           # Search for patterns
-          ]
-
+          allowed_tools: |
+            [
+              "Edit",
+              "Bash(git commit:*)",
+              "Bash(git push:*)",
+              "Bash(npm test)",
+              "View", "GlobTool", "GrepTool"
+            ]
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
