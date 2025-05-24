@@ -58,6 +58,20 @@ async fn main() -> Result<()> {
         info!("Skipping Custom Site crawler: CUSTOM_SITE_URL not set");
     }
 
+    // Add OpenRouter crawler - always enabled
+    if let Ok(openrouter_crawler) = openrouter::OpenRouterCrawler::new(&config) {
+        manager = manager.add_crawler(Box::new(openrouter_crawler));
+    } else {
+        info!("Failed to create OpenRouter crawler");
+    }
+
+    // Add MCP Rankings crawler - always enabled
+    if let Ok(mcp_crawler) = mcp_rankings::McpRankingsCrawler::new(&config) {
+        manager = manager.add_crawler(Box::new(mcp_crawler));
+    } else {
+        info!("Failed to create MCP Rankings crawler");
+    }
+
     // Run all crawlers
     manager.run_all().await.map_err(|e| anyhow::anyhow!(e))?;
 
