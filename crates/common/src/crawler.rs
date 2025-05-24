@@ -32,14 +32,12 @@ impl CrawlerManager {
     }
 
     pub async fn run_all(&self) -> CrawlerResult<()> {
-        use tokio::task::JoinSet;
+        use futures::future::join_all;
         use tracing::{info, warn};
 
-        let mut tasks = JoinSet::new();
-        
-        for crawler in &self.crawlers {
+        let futures = self.crawlers.iter().map(|crawler| {
             let name = crawler.name();
-            tasks.spawn(async move {
+            async move {
                 match crawler.run().await {
                     Ok(_) => {
                         info!("{} completed successfully", name);
@@ -50,16 +48,18 @@ impl CrawlerManager {
                         Err(e)
                     }
                 }
-            });
-        }
+            }
+        });
 
+        let results = join_all(futures).await;
+        
         let mut success_count = 0;
         let mut error_count = 0;
 
-        while let Some(result) = tasks.join_next().await {
+        for result in results {
             match result {
-                Ok(Ok(_)) => success_count += 1,
-                Ok(Err(_)) | Err(_) => error_count += 1,
+                Ok(_) => success_count += 1,
+                Err(_) => error_count += 1,
             }
         }
 
