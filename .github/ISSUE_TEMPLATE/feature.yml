@@ -1,0 +1,19 @@
+name: "Feature request @claude"
+description: "Request a new feature for Claude"
+labels: ["ai-implement"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: 📝 Background & Purpose
+      description: Please describe specifically what you want to solve.
+  - type: textarea
+    id: ac
+    attributes:
+      label: ✅ Acceptance Criteria
+      description: Conditions and test items that the feature must satisfy
+  - type: textarea
+    id: tests
+    attributes:
+      label: 🧪 Testing Guidelines
+      description: Test cases or commands that would indicate a bug if they fail
