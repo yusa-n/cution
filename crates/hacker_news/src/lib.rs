@@ -14,6 +14,7 @@ pub struct HackerNewsCrawler {
     api: HackerNewsAPI,
     storage_client: SupabaseStorageClient,
     gemini_api_key: String,
+    config: common::HackerNewsConfig,
 }
 
 impl HackerNewsCrawler {
@@ -29,11 +30,12 @@ impl HackerNewsCrawler {
             api: HackerNewsAPI::new(),
             storage_client,
             gemini_api_key,
+            config: config.hacker_news.clone(),
         })
     }
 
     async fn process_stories(&self) -> CrawlerResult<()> {
-        let story_ids = self.api.get_top_stories(30).await
+        let story_ids = self.api.get_top_stories(self.config.max_stories).await
             .map_err(|e| common::CrawlerError::Api(e.to_string()))?;
         info!("Fetched {} top story IDs", story_ids.len());
 
@@ -45,15 +47,18 @@ impl HackerNewsCrawler {
         for story_id in story_ids {
             let api = self.api.clone();
             let gemini_api_key = self.gemini_api_key.clone();
+            let min_score_threshold = self.config.min_score_threshold;
+            let min_html_length = self.config.min_html_length;
+            let max_html_length = self.config.max_html_length;
             tasks.spawn(async move {
                 match api.get_story(story_id).await {
                     Ok(item) => {
-                        if item.score < 20 {
+                        if item.score < min_score_threshold {
                             return None;
                         }
 
                         let summary = match &item.text {
-                            Some(html) if (100..10_000).contains(&html.len()) => {
+                            Some(html) if (min_html_length..max_html_length).contains(&html.len()) => {
                                 info!("Summarizing story: {}", item.title);
                                 let clean_text = api.clean_html(html);
                                 match api

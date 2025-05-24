@@ -10,12 +10,32 @@ pub struct SupabaseConfig {
 }
 
 #[derive(Debug, Clone)]
+pub struct HackerNewsConfig {
+    pub min_html_length: usize,
+    pub max_html_length: usize,
+    pub min_score_threshold: i32,
+    pub max_stories: usize,
+}
+
+impl Default for HackerNewsConfig {
+    fn default() -> Self {
+        Self {
+            min_html_length: 100,
+            max_html_length: 10_000,
+            min_score_threshold: 20,
+            max_stories: 30,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Config {
     pub supabase: SupabaseConfig,
     pub gemini_api_key: Option<String>,
     pub xai_api_key: Option<String>,
     pub custom_site_url: Option<String>,
     pub languages: Vec<String>,
+    pub hacker_news: HackerNewsConfig,
 }
 
 impl Config {
@@ -40,6 +60,25 @@ impl Config {
             })
             .unwrap_or_default();
 
+        let hacker_news = HackerNewsConfig {
+            min_html_length: env::var("HN_MIN_HTML_LENGTH")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(100),
+            max_html_length: env::var("HN_MAX_HTML_LENGTH")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(10_000),
+            min_score_threshold: env::var("HN_MIN_SCORE_THRESHOLD")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(20),
+            max_stories: env::var("HN_MAX_STORIES")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(30),
+        };
+
         Ok(Config {
             supabase: SupabaseConfig {
                 url: supabase_url,
@@ -51,6 +90,7 @@ impl Config {
             xai_api_key: env::var("XAI_API_KEY").ok(),
             custom_site_url: env::var("CUSTOM_SITE_URL").ok(),
             languages,
+            hacker_news,
         })
     }
 
