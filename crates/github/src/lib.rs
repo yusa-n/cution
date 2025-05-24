@@ -1,8 +1,9 @@
-use anyhow::Result;
-use std::env;
+use common::{Config, Crawler, CrawlerResult, SupabaseStorageClient};
 use time::OffsetDateTime;
 use tracing::{info, warn};
-use common::SupabaseStorageClient;
+use async_trait::async_trait;
+
+pub use self::GithubTrendingFetcher;
 
 const GITHUB_TRENDING_URL_FORMAT: &str = "https://github.com/trending/{language}?since=daily";
 const MARKDOWN_FORMAT: &str =
@@ -22,30 +23,21 @@ pub struct GithubTrendingFetcher {
     languages: Vec<String>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum FetchError {
-    #[error("HTTP request failed: {0}")]
-    HttpRequest(#[from] reqwest::Error),
-    #[error("HTML parsing failed: {0}")]
-    HtmlParse(String),
-    #[error("Supabase upload failed: {0}")]
-    SupabaseUpload(String),
-    #[error("Environment variable LANGUAGES not set or empty")]
-    LanguagesEnvVarMissing,
-}
-
 impl GithubTrendingFetcher {
-    pub async fn new(
-        supabase_url: &str,
-        supabase_key: &str,
-        supabase_bucket: &str,
-    ) -> Result<Self, FetchError> {
+    pub fn new(config: &Config) -> CrawlerResult<Self> {
         let http_client = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-            .build()?;
-        let supabase_client =
-            SupabaseStorageClient::new(supabase_url, supabase_key, supabase_bucket);
-        let languages = Self::load_languages()?;
+            .build()
+            .map_err(|e| common::CrawlerError::HttpRequest(e))?;
+        
+        let supabase_client = SupabaseStorageClient::new(
+            &config.supabase.storage_url,
+            &config.supabase.key,
+            &config.supabase.bucket,
+        );
+        
+        let languages = config.require_languages()?.clone();
+        
         Ok(Self {
             http_client,
             supabase_client,
@@ -53,33 +45,10 @@ impl GithubTrendingFetcher {
         })
     }
 
-    fn load_languages() -> Result<Vec<String>, FetchError> {
-        match env::var("LANGUAGES") {
-            Ok(langs_str) if !langs_str.trim().is_empty() => {
-                let languages = langs_str
-                    .split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
-                    .collect::<Vec<String>>();
-                if languages.is_empty() {
-                    warn!("'LANGUAGES' environment variable is set but resulted in an empty list after parsing.");
-                    Err(FetchError::LanguagesEnvVarMissing)
-                } else {
-                    info!("Loaded languages from ENV: {:?}", languages);
-                    Ok(languages)
-                }
-            }
-            _ => {
-                warn!("'LANGUAGES' environment variable not set or is empty. No languages to process.");
-                Err(FetchError::LanguagesEnvVarMissing) // Or return Ok(Vec::new()) if it's acceptable to run with no languages
-            }
-        }
-    }
-
     async fn fetch_trending_for_language(
         &self,
         language: &str,
-    ) -> Result<Vec<Repository>, FetchError> {
+    ) -> CrawlerResult<Vec<Repository>> {
         let url = if language.is_empty() {
             GITHUB_TRENDING_URL_FORMAT.replace("/{language}", "")
         } else {
@@ -87,19 +56,22 @@ impl GithubTrendingFetcher {
         };
         info!("Fetching trending repositories from: {}", url);
 
-        let response_text = self.http_client.get(&url).send().await?.text().await?;
+        let response_text = self.http_client.get(&url).send().await
+            .map_err(|e| common::CrawlerError::HttpRequest(e))?
+            .text().await
+            .map_err(|e| common::CrawlerError::HttpRequest(e))?;
         let document = scraper::Html::parse_document(&response_text);
 
         let article_selector = scraper::Selector::parse("article.Box-row").map_err(|e| {
-            FetchError::HtmlParse(format!("Failed to parse article selector: {}", e))
+            common::CrawlerError::HtmlParse(format!("Failed to parse article selector: {}", e))
         })?;
         let name_selector = scraper::Selector::parse("h2.h3 a")
-            .map_err(|e| FetchError::HtmlParse(format!("Failed to parse name selector: {}", e)))?;
+            .map_err(|e| common::CrawlerError::HtmlParse(format!("Failed to parse name selector: {}", e)))?;
         let desc_selector = scraper::Selector::parse("p.col-9").map_err(|e| {
-            FetchError::HtmlParse(format!("Failed to parse description selector: {}", e))
+            common::CrawlerError::HtmlParse(format!("Failed to parse description selector: {}", e))
         })?;
         let stars_selector = scraper::Selector::parse("a[href*='/stargazers']")
-            .map_err(|e| FetchError::HtmlParse(format!("Failed to parse stars selector: {}", e)))?;
+            .map_err(|e| common::CrawlerError::HtmlParse(format!("Failed to parse stars selector: {}", e)))?;
 
         let mut repositories = Vec::new();
 
@@ -159,7 +131,7 @@ impl GithubTrendingFetcher {
             )
     }
 
-    pub async fn run(&self) -> Result<()> {
+    async fn process(&self) -> CrawlerResult<()> {
         let mut all_markdowns: Vec<String> = Vec::new();
         let mut processed_languages = 0;
 
@@ -220,7 +192,7 @@ impl GithubTrendingFetcher {
                 .supabase_client
                 .upload_file(&file_path, file_content, "text/markdown")
                 .await
-                .map_err(|e| FetchError::SupabaseUpload(e.to_string()))?;
+                .map_err(|e| common::CrawlerError::StorageUpload(e.to_string()))?;
             info!(
                 "Successfully uploaded trending repositories to {}",
                 file_path
@@ -232,47 +204,24 @@ impl GithubTrendingFetcher {
     }
 }
 
-// Clone トレイトを実装して、各言語処理の並列タスク内でクローンして使用できるようにする
-impl Clone for GithubTrendingFetcher {
-    fn clone(&self) -> Self {
-        let http_client = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-            .build()
-            .expect("Failed to build HTTP client clone");
+#[async_trait]
+impl Crawler for GithubTrendingFetcher {
+    async fn run(&self) -> CrawlerResult<()> {
+        info!("GitHub Trending Fetcher starting up");
+        self.process().await
+    }
 
-        Self {
-            http_client,
-            supabase_client: self.supabase_client.clone(),
-            languages: self.languages.clone(),
-        }
+    fn name(&self) -> &'static str {
+        "GitHub Trending"
     }
 }
 
 
-// メイン関数をライブラリの関数として公開
-pub async fn run_github_crawler() -> Result<()> {
+// Backward compatibility function
+pub async fn run_github_crawler() -> anyhow::Result<()> {
+    use dotenv;
     let _ = dotenv::dotenv();
-
-    info!("GitHub Trending Fetcher starting up");
-
-    let supabase_url = env::var("SUPABASE_URL").expect("SUPABASE_URL must be set");
-    let supabase_key =
-        env::var("SUPABASE_SERVICE_ROLE_KEY").expect("SUPABASE_SERVICE_ROLE_KEY must be set");
-    let supabase_bucket =
-        env::var("SUPABASE_BUCKET_NAME").expect("SUPABASE_BUCKET_NAME must be set");
-
-    let fetcher = GithubTrendingFetcher::new(
-        &format!("{}/storage/v1", supabase_url.trim_end_matches('/')),
-        &supabase_key,
-        &supabase_bucket,
-    )
-    .await?;
-
-    if let Err(e) = fetcher.run().await {
-        eprintln!("Error running fetcher: {}", e);
-        return Err(e.into());
-    }
-
-    info!("GitHub Trending Fetcher finished successfully.");
-    Ok(())
+    let config = Config::from_env()?;
+    let crawler = GithubTrendingFetcher::new(&config)?;
+    crawler.run().await.map_err(|e| anyhow::anyhow!(e))
 }

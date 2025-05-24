@@ -10,6 +10,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
 dotenv = "0.15"
 
+common = { path = "../common" }
 github = { path = "../github" }
 hacker_news = { path = "../hacker_news" }
 custom_site = { path = "../custom_site" }
