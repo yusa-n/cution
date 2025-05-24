@@ -6,23 +6,24 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.79"
+async-trait = "0.1"
+dotenv = "0.15.0"
 reqwest = { version = "0.12.9", features = [
     "json",
     "rustls-tls",
 ], default-features = false }
 scraper = "0.23.1"
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.35.1", features = ["full"] }
-anyhow = "1.0.79"
+thiserror = "2.0.1"
 time = { version = "0.3.31", features = [
     "macros",
     "formatting",
     "serde-well-known",
 ] }
+tokio = { version = "1.35.1", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["fmt"] }
-dotenv = "0.15.0"
-thiserror = "2.0.1"
 common = { path = "../common" }
 
 [profile.release]
