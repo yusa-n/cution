@@ -15,3 +15,5 @@ github = { path = "../github" }
 hacker_news = { path = "../hacker_news" }
 custom_site = { path = "../custom_site" }
 xai_search = { path = "../xai_search" }
+openrouter = { path = "../openrouter" }
+mcp_rankings = { path = "../mcp_rankings" }

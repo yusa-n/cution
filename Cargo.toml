@@ -8,7 +8,9 @@ members = [
     "crates/arxiv",
     "crates/xai_search",
     "crates/hello_world",
-    # "crates/scheduler", # optional
+    "crates/openrouter",
+    "crates/mcp_rankings",
+    "crates/scheduler",
 ]
 
 resolver = "2"
